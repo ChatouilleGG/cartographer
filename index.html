@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Chatouille">
+<title>Cartographer</title>
+<link rel="icon" type="image/svg" href="img/favicon.svg"/>
+<!--
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"/>
+-->
+<!-- local resources make the app work locally without connection -->
+<link rel="stylesheet" href="css/libs.css" referrerpolicy="no-referrer"/>
+
+<!-- FontAwesome is more complex -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
+<link rel="stylesheet" href="css/app.css" referrerpolicy="no-referrer"/>
+
+<body>
+
+<div class="title">
+	<img src="img/favicon.svg"/>
+	<span>Cartographer</span>
+</div>
+<div class="topbar flexrow">
+	<select class="select-map form-control-sm pt-1 pb-1" onchange="onChangeMap(this.value)">
+		<option value="" selected hidden disabled>Select map</option>
+		<!-- MAPS LIST -->
+		<option value="test_1">Test 1</option>
+		<option value="test_2">Test 2</option>
+	</select>
+	<div class="ml-4 fakefield flexrow"><i class="fa fa-search"></i><span class="ml-2 mr-1 currentZoom">100</span>%</div>
+	<div class="flex-grow-1"></div>
+	<button class="newmap btn btn-outline-success"><i class="fa fa-plus-square mr-2"></i>New map</button>
+	<button class="ml-4 edit btn btn-outline-primary"><i class="fa fa-wrench mr-2"></i>Edit</button>
+</div>
+<div class="leftbar">
+	<div class="flexrow justify-content-between">
+		<div class="pane-title"><i class="fa fa-info-circle mr-2"></i>Legend</div>
+		<button class="newicon btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#modalEditIcon"><i class="fa fa-add"></i></button>
+	</div>
+	<ul class="mt-2 legend"></ul>
+</div>
+<div class="renderer" tabindex="0">
+	<div class="origin">ORIGIN</div>
+	<div class="markers"></div>
+</div>
+<div class="editpane flexcol">
+	<div class="flexrow spaced">
+		<div class="pane-title"><i class="fa fa-wrench mr-2"></i>Editor</div>
+		<button class="close text-secondary"><i class="fa fa-close"></i></button>
+	</div>
+	<div class="section map-editing">
+		<div class="sec-title">Map settings</div>
+		<div class="flexrow">
+			<div class="flex-shrink-0">Background :</div>
+			<input type="text" class="ml-2 bgColor form-control form-control-sm"/>
+		</div>
+	</div>
+	<div class="section tile-image-editing">
+		<div class="sec-title">Tile image editing</div>
+		<div>Source size :</div>
+		<div class="flex50">
+			<div class="srcWidth fakefield mr-2"></div>
+			<div class="srcHeight fakefield"></div>
+		</div>
+		<div class="mt-3">Working size :</div>
+		<div class="flex50">
+			<input type="number" step="1" class="width form-control form-control-sm mr-2"/>
+			<input type="number" step="1" class="height form-control form-control-sm"/>
+		</div>
+		<div class="mt-3 info-path"><i class="fa fa-info-circle mr-2"></i>Save image location :<pre class="mt-1 imagePath"></pre></div>
+		<div class="mt-3 flex50">
+			<button class="commit btn btn-sm btn-success mr-2"><i class="fa fa-download mr-2"></i>Finish</button>
+			<button class="cancel btn btn-sm btn-secondary">Cancel</button>
+		</div>
+	</div>
+	<div class="section tileset-editing">
+		<div class="sec-title">Current Tileset</div>
+		<div class="mt-2 flexrow">
+			<div>Tileset idx :</div>
+			<div class="ml-2 tilesetIndex fakefield"></div>
+			<button class="ml-2 btn btn-sm btn-outline-primary newtileset"><i class="fa fa-plus"></i></button>
+		</div>
+		<div class="mt-2 flexrow">
+			<div class="flex-shrink-0">Zoom level :</div>
+			<input type="number" step="1" min="1" max="1000" class="zoomLevel ml-2 form-control form-control-sm"/>
+		</div>
+		<div>Tile size :</div>
+		<div class="flexrow">
+			<input type="number" step="1" min="100" max="4096" class="tileWidth form-control form-control-sm"/>
+			<span class="ml-1 mr-1">&times;</span>
+			<input type="number" step="1" min="100" max="4096" class="tileHeight form-control form-control-sm"/>
+		</div>
+		<div class="mt-2">Origin shift :</div>
+		<div class="flexrow">
+			<input type="number" step="1" class="offsetX form-control form-control-sm mr-2"/>
+			<input type="number" step="1" class="offsetY form-control form-control-sm"/>
+		</div>
+		<div class="mt-2">Grid dimensions :</div>
+		<div class="flexrow dirs justify-content-center">
+			<div class="item">
+				<button class="btn btn-link" onclick="expandTileset('W')"><i class="fa fa-caret-left"></i></button>
+				<div class="sizeW"></div>
+			</div>
+			<div class="flexcol">
+				<div class="item">
+					<div class="sizeN"></div>
+					<button class="btn btn-link" onclick="expandTileset('N')"><i class="fa fa-caret-up"></i></button>
+				</div>
+				<div class="item">
+					<div class="sizeS"></div>
+					<button class="btn btn-link" onclick="expandTileset('S')"><i class="fa fa-caret-down"></i></button>
+				</div>
+			</div>
+			<div class="item">
+				<div class="sizeE"></div>
+				<button class="btn btn-link" onclick="expandTileset('E')"><i class="fa fa-caret-right"></i></button>
+			</div>
+		</div>
+		<div class="mt-1 flexrow">
+			<button class="recenter btn btn-sm btn-outline-primary"><i class="fa fa-location-arrow mr-1"></i>Origin</button>
+			<div class="flex-grow-1"></div>
+			<button class="trim btn btn-sm btn-outline-warning"><i class="fa fa-compress-alt mr-1"></i>Trim</button>
+		</div>
+	</div>
+
+	<div class="flex-grow-1"></div>
+	<div class="info-path"><i class="fa fa-info-circle mr-2"></i>Save data location :<pre class="mt-1 dataPath"></pre></div>
+	<button class="mt-2 export btn btn-success"><i class="fa fa-download mr-2"></i>Export map data</button>
+</div>
+
+<form style="display:none"><input type="file" class="inputfile-image" accept="image/*"/></form>
+
+<div id="cmenu-tile" class="dropdown-menu">
+	<button class="dropdown-item remove text-danger"><i class="fa fa-trash mr-2"></i>Remove tile</button>
+</div>
+
+<div id="cmenu-icon" class="dropdown-menu">
+	<button class="dropdown-item edit text-primary"><i class="fa fa-wrench mr-2"></i>Edit icon</button>
+	<div class="dropdown-divider"></div>
+	<button class="dropdown-item remove text-danger"><i class="fa fa-trash mr-2"></i>Remove icon</button>
+</div>
+
+<div id="cmenu-marker" class="dropdown-menu">
+	<button class="dropdown-item edit text-primary"><i class="fa fa-edit mr-2"></i>Edit info</button>
+	<div class="dropdown-divider"></div>
+	<button class="dropdown-item remove text-danger"><i class="fa fa-trash mr-2"></i>Remove marker</button>
+</div>
+
+<div class="modal fade" id="modalEditIcon" tabindex="-1" role="dialog">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">New Icon</h5>
+				<button type="button" class="bootbox-close-button close" data-dismiss="modal">&times;</button>
+			</div>
+			<div class="modal-body page1 flexcol">
+				<h6>Choose image :</h6>
+				<button class="upload btn btn-lg btn-outline-success p-5"><i class="fa fa-upload"></i></button>
+				<h6 class="mt-3">Or make a simple placeholder :</h6>
+				<div class="flexrow">
+					<img class="icon-placeholder" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"/>
+					<div class="ml-3">
+						<div class="flexrow">
+							<label>Background :</label>
+							<input type="text" class="ml-2 ph-bgColor form-control form-control-sm w-auto"/>
+						</div>
+						<div class="mt-1 flexrow">
+							<label>Foreground :</label>
+							<input type="text" class="ml-2 ph-fgColor form-control form-control-sm w-auto"/>
+						</div>
+						<div class="mt-1 flexrow">
+							<label>Label :</label>
+							<input type="text" maxlength="1" class="ml-2 ph-label form-control form-control-sm w-auto"/>
+						</div>
+					</div>
+					<button class="ml-3 use-ph align-self-end btn btn-sm btn-primary">Continue<i class="ml-2 fa fa-arrow-right"></i></button>
+				</div>
+			</div>
+			<div class="modal-body page2">
+				<form>
+					<!-- prevent implicit submit - we use onchange/enter key to update the icon preview -->
+					<button type="submit" class="d-none" disabled aria-hidden="true"></button>
+					<div class="flexrow">
+						<label>Name :</label>
+						<input type="text" placeholder="Icon name…" class="ml-2 name form-control form-control-sm w-auto" required/>
+					</div>
+					<div class="mt-2 flexrow">
+						<div class="icon-container">
+							<img class="icon" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"/>
+							<i class="anchor d-none"></i>
+						</div>
+						<div class="ml-4">
+							<div class="flexrow">
+								<label>SizeX :</label>
+								<input type="text" class="ml-2 sizeX form-control form-control-sm w-auto" required/>
+							</div>
+							<div class="mt-1 flexrow">
+								<label>SizeY :</label>
+								<input type="text" class="ml-2 sizeY form-control form-control-sm w-auto" required/>
+							</div>
+						</div>
+					</div>
+					<div class="mt-2 flexrow justify-content-between align-items-end">
+						<div>
+							<div class="show-anchor">
+								<div class="flexrow">
+									<label>AnchorX :</label>
+									<input type="text" class="ml-2 anchorX form-control form-control-sm w-auto" required/>
+								</div>
+								<div class="mt-1 flexrow">
+									<label>AnchorY :</label>
+									<input type="text" class="ml-2 anchorY form-control form-control-sm w-auto" required/>
+								</div>
+							</div>
+							<div class="mt-2 flexrow">
+								<label>Min. zoom level :</label>
+								<input type="number" min="0" max="999" class="ml-2 zoomLevel form-control form-control-sm w-auto"/>
+							</div>
+						</div>
+						<button type="submit" class="btn btn-success"><i class="fa fa-save mr-2"></i>Save</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!--
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js" integrity="sha512-RdSPYh1WA6BF0RhpisYJVYkOyTzK4HwofJ3Q7ivt/jkpW6Vc8AurL1R+4AUcvn9IwEKAPm/fk7qFZW3OuiUDeg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+-->
+<!-- local resources make the app work locally without connection -->
+<script src="js/libs.js" referrerpolicy="no-referrer"></script>
+<script src="js/app.js" referrerpolicy="no-referrer"></script>
+</body>
+</html>
