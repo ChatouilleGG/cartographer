@@ -28,8 +28,7 @@
 	<select class="select-map form-control-sm pt-1 pb-1" onchange="onChangeMap(this.value)">
 		<option value="" selected hidden disabled>Select map</option>
 		<!-- MAPS LIST -->
-		<option value="test_1">Test 1</option>
-		<option value="test_2">Test 2</option>
+		<option value="aeternalucisdemo">Aeterna Lucis Demo</option>
 	</select>
 	<div class="ml-4 fakefield flexrow"><i class="fa fa-search"></i><span class="ml-2 mr-1 currentZoom">100</span>%</div>
 	<div class="flex-grow-1"></div>
@@ -219,6 +218,10 @@
 							<div class="mt-2 flexrow">
 								<label>Min. zoom level :</label>
 								<input type="number" min="0" max="999" class="ml-2 zoomLevel form-control form-control-sm w-auto"/>
+							</div>
+							<div class="mt-1 flexrow">
+								<label>Default enabled :</label>
+								<input type="checkbox" class="ml-1 defaultEnabled cb-eye"/>
 							</div>
 						</div>
 						<button type="submit" class="btn btn-success"><i class="fa fa-save mr-2"></i>Save</button>

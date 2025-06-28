@@ -424,6 +424,9 @@ class MarkerIconDefinition {
 	// Minimum zoom level to show markers of this type
 	zoomLevel = 0;
 
+	// Enabled by default (show on map load)
+	defaultEnabled = false;
+
 	// Array of Markers
 	markers;
 
@@ -443,6 +446,9 @@ class MarkerIconDefinition {
 		icon._index = index;
 
 		icon.markers = (data.markers || []).map(Marker.fromData);
+
+		if (icon.defaultEnabled)
+			icon.setEnabled(true);
 
 		return icon;
 	}
@@ -704,7 +710,7 @@ function serializeToJson(obj, prettyIndent) {
 function serializeToJS(inValue, indentStr) {
 	if (inValue === undefined)
 		return "undefined";
-	if (typeof(inValue) == 'number')
+	if (typeof(inValue) == 'number' || typeof(inValue) == 'boolean')
 		return String(inValue);
 	if (typeof(inValue) == 'string')
 		return JSON.stringify(inValue);
@@ -928,7 +934,7 @@ $(document).ready(function() {
 		setTimeout(() => {
 			let $sel = $('.select-map');
 			if ($sel.find('option[value="'+urlParameters.map+'"]').length == 0)
-				$sel.append('<option value="'+urlParameters.map+'">&lt;CUSTOM&gt; '+urlParameters.map+'</option>');
+				$sel.append('<option value="'+urlParameters.map+'" class="custom">&lt;CUSTOM&gt; '+urlParameters.map+'</option>');
 			$sel.val(urlParameters.map).change();
 		}, 1);
 	}
@@ -1035,7 +1041,7 @@ function onChangeMap(inMapName, inLocalMapData) {
 
 //TODO: We just added zoom-based visibility support for icons,
 // but there's no clear UI information about it.
-// Need to convey this information to the legend somehow, in a better way than title/tooltip.
+// Need to convey this information to the legend somehow.
 
 function redrawLegendPane() {
 	let html = "";
@@ -1044,7 +1050,8 @@ function redrawLegendPane() {
 			html += '<li>'
 				+ '<img src="'+icon.imageUri.replaceAll('"',"&quot;")+'"/>'
 				+ '<span>'+escapeHtml(icon.name)+'</span>'
-				+ '<input type="checkbox" '+(icon.isEnabled() ? 'checked' : '')+'/>'
+				+ '<i>'+icon.markers.length+'</i>'
+				+ '<input type="checkbox" class="cb-eye" '+(icon.isEnabled() ? 'checked' : '')+'/>'
 				+ '</li>';
 		}
 	}
@@ -1105,7 +1112,7 @@ $(document).ready(function() {
 				let normalizedName = normalizeMapName(displayName);
 				if (normalizedName.length < 3)
 					return commonErrorHandler("Normalized name '"+normalizedName+"' is too short !");
-				if ($('option[value="'+normalizedName+'"]').length > 0)
+				if ($('option[value="'+normalizedName+'"]:not(.custom)').length > 0)
 					return commonErrorHandler("Normalized name '"+normalizedName+"' already exists !");
 
 				// Pass in an empty data object, MapData will construct itself with defaults
@@ -1287,6 +1294,7 @@ $(document).ready(function() {
 			if (document.elementFromPoint(event.clientX, event.clientY).closest('.renderer')) {
 				const coords = clientPosToCoordinates(event.clientX, event.clientY);
 				currentMap.createNewMarker(iconIndex, coords.x, coords.y);
+				redrawLegendPane();
 			}
 		});
 
@@ -1316,8 +1324,10 @@ $(document).ready(function() {
 				},
 			});
 		}
-		else if ($action.hasClass('remove'))
+		else if ($action.hasClass('remove')) {
 			currentMap.removeMarker(markerIdx.iconIndex, markerIdx.markerIndex);
+			redrawLegendPane();
+		}
 	});
 
 	// Export map data
@@ -1349,14 +1359,14 @@ function setupCellImageEditingWithLoadedImg(tileset, row, col, img) {
 	$('body').addClass('editing-tile');
 
 	// initial scale
-	const minScale = Math.max(tileset.tileWidth/img.naturalWidth, tileset.tileHeight/img.naturalHeight);
+	const coverScale = Math.max(tileset.tileWidth/img.naturalWidth, tileset.tileHeight/img.naturalHeight);
 
-	const minWidth = Math.round(minScale*img.naturalWidth);
-	const minHeight = Math.round(minScale*img.naturalHeight);
-	let imgWidth = minWidth;
-	let imgHeight = minHeight;
+	let imgWidth = Math.round(coverScale*img.naturalWidth);
+	let imgHeight = Math.round(coverScale*img.naturalHeight);
 	let imgX = (tileset.tileWidth - imgWidth) / 2;
 	let imgY = (tileset.tileHeight - imgHeight) / 2;
+	const minWidth = 20;
+	const minHeight = 20;
 
 	const $panel = $('.tile-image-editing');
 	$panel.find('.srcWidth').text(img.naturalWidth);
@@ -1366,8 +1376,8 @@ function setupCellImageEditingWithLoadedImg(tileset, row, col, img) {
 	function updateImg() {
 		imgWidth = Math.round(imgWidth);
 		imgHeight = Math.round(imgHeight);
-		imgX = clamp(imgX, tileset.tileWidth - imgWidth, 0);
-		imgY = clamp(imgY, tileset.tileHeight - imgHeight, 0);
+		imgX = clamp(imgX, minWidth-imgWidth, tileset.tileWidth-minWidth);
+		imgY = clamp(imgY, minHeight-imgHeight, tileset.tileHeight-minHeight);
 		$(img).css({
 			width: imgWidth+'px',
 			height: imgHeight+'px',
@@ -1541,8 +1551,8 @@ function setupCellImageEditingWithLoadedImg(tileset, row, col, img) {
 		imageResizeCropEncode(img, {
 			drawWidth: imgWidth,
 			drawHeight: imgHeight,
-			cropX: imgX,
-			cropY: imgY,
+			posX: imgX,
+			posY: imgY,
 			destWidth: destWidth,
 			destHeight: destHeight,
 			encodeType: 'image/webp',
@@ -1653,6 +1663,7 @@ function setupModalEditIcon() {
 
 		$modal.find('.name').val(tempIcon.name);
 		$modal.find('.zoomLevel').val(tempIcon.zoomLevel);
+		$modal.find('.defaultEnabled')[0].checked = tempIcon.defaultEnabled;
 
 		loadSrcIntoImg(src, $icon[0])
 		.then(img => {
@@ -1712,6 +1723,7 @@ function setupModalEditIcon() {
 			return $modal.find('.name').val("").closest('form')[0].reportValidity();
 
 		tempIcon.zoomLevel = parseFloat($modal.find('.zoomLevel').val()) || 0;
+		tempIcon.defaultEnabled = $modal.find('.defaultEnabled')[0].checked;
 
 		// Note: difficult to validate sizes, we can only assume they're correct
 		if (!$iconContainer.width())
@@ -1738,7 +1750,7 @@ function setupModalEditIcon() {
 			if (editingIcon) {
 				Object.assign(editingIcon, tempIcon);
 				editingIcon.removeLayer();
-				editingIcon.renderLayer();
+				editingIcon.setEnabled(editingIcon.isEnabled() || editingIcon.defaultEnabled);
 			}
 			else {
 				currentMap.createNewIcon(tempIcon);
@@ -1878,8 +1890,8 @@ function imageResizeCropEncode(img, args) {
 	if (!args.drawHeight) args.drawHeight = args.destHeight || img.naturalHeight;
 	if (!args.destWidth) args.destWidth = args.drawWidth;
 	if (!args.destHeight) args.destHeight = args.drawHeight;
-	if (!args.cropX) args.cropX = 0;
-	if (!args.cropY) args.cropY = 0;
+	if (!args.posX) args.posX = 0;
+	if (!args.posY) args.posY = 0;
 	if (!args.quality) args.quality = 1.0;
 	if (!args.encodeType) args.encodeType = 'image/webp';
 	if (!args.resultType) args.resultType = 'blob';
@@ -1890,7 +1902,7 @@ function imageResizeCropEncode(img, args) {
 			canvas.width = args.destWidth;
 			canvas.height = args.destHeight;
 			let context = canvas.getContext('2d');
-			context.drawImage(img, -Math.abs(args.cropX), -Math.abs(args.cropY), args.drawWidth, args.drawHeight);
+			context.drawImage(img, args.posX, args.posY, args.drawWidth, args.drawHeight);
 			if (args.resultType == 'blob')
 				canvas.toBlob(resolve, args.encodeType, args.quality);
 			else if (args.resultType == 'dataURL')
