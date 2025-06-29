@@ -378,3 +378,8 @@ img.dragging {
 	z-index: 1000;
 	cursor: grabbing;
 }
+
+.dropdown-item:disabled {
+	opacity: 0.3;
+	pointer-events: none;
+}

@@ -1193,25 +1193,41 @@ $(document).ready(function() {
 	});
 
 	$renderer.setupContextMenu('td', /*menu*/function(event) {
+		// No tile actions when not in edit mode
 		if (!isEditing())
+			return null;
+		// No tile actions if in tile image editing mode
+		if (isEditingTile())
+			return null;
+		// No tile actions if the event is caught from a parent layer
+		if (currentMap.getTilesetFromTable(this.closest('table')) != currentTileset)
 			return null;
 
 		let $menu = $('#cmenu-tile');
 
-		// Remove tile
-		$menu.find('.remove').addClass('d-none');
-		if (isEditing() && !isEditingTile() && currentTileset == currentMap.getTilesetFromTable(this.closest('table'))) {
-			const cell = currentTileset.getCellAt(event.clientX, event.clientY);
-			const tile = currentTileset.getTileAt(cell.row, cell.col);
-			if (tile)
-				$menu.find('.remove').removeClass('d-none');
-		}
+		const cell = currentTileset.getCellAt(event.clientX, event.clientY);
+		const tile = currentTileset.getTileAt(cell.row, cell.col);
+
+		$menu.find('.remove').toggleClass('d-none', !tile);
+
+		$menu.find('.paste').toggleClass('d-none', !!tile).attr('disabled', true);
+		if (!tile)
+			findValidPaste(isValidImageType).then(item => $menu.find('.paste').attr('disabled', !item));
 
 		return $menu;
 	}, /*callback*/function($action, initialEvent) {
+		const cell = currentTileset.getCellAt(initialEvent.clientX, initialEvent.clientY);
 		if ($action.hasClass('remove')) {
-			const cell = currentTileset.getCellAt(initialEvent.clientX, initialEvent.clientY);
 			currentTileset.removeTileAt(cell.row, cell.col);
+		}
+		else if ($action.hasClass('paste')) {
+			findValidPaste(isValidImageType).then(item => {
+				if (item) {
+					item.clipboardItem.getType(item.mimeType).then(blob => {
+						setupCellImageEditingWithFile(currentTileset, cell.row, cell.col, blob);
+					});
+				}
+			});
 		}
 	});
 
@@ -1820,6 +1836,7 @@ function svgToDataURL(svg) {
 	return "data:image/svg+xml," + escapeSvg(svg);
 }
 
+// Note: also works with blob
 function readFileAs(file, asType) {
 	return new Promise((resolve, reject) => {
 		if (!file)
@@ -1977,6 +1994,22 @@ function cssValueOp_negative(cssValue) {
 	if (cssValue.startsWith('-'))
 		return cssValue.slice(1);
 	return '-'+cssValue;
+}
+
+// Returns { clipboardItem, mimeType } or null
+function findValidPaste(validateFn) {
+	return navigator.clipboard.read().then(items => {
+		//console.log(items);
+		for (let item of items) {
+			//NOTE: realistically, only images can be in clipboard.
+			// Everything else is copied either as text or file. And we cannot access files here.
+			for (let type of item.types) {
+				if (validateFn(type))
+					return { clipboardItem:item, mimeType:type };
+			}
+		}
+		return null;
+	});
 }
 
 
