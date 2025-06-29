@@ -1518,61 +1518,15 @@ function setupCellImageEditingWithLoadedImg(tileset, row, col, img) {
 	$panel.find('.cancel').off('click').click(cleanup);
 	$panel.find('.commit').off('click').click(() => {
 		// Generate final tile image
-
-		// This quality ratio seems to give best results
-		// 150% tile dimensions, 80% quality
-		// Good at 100% scale, good enough when zooming in on, small file size
-		const quality = 0.80;
-		let tileScale = 1.50;
-
-		// Note: Avoid scaling the image UP - unless we have to
-		// Scale up if image source < tile dimensions
-		// Don't scale if image source < target dimensions (ie. 150% tile dimensions)
-		// Scale down if image source > target dimensions
-		let destWidth, destHeight;
-
-		const croppedNaturalWidth = img.naturalWidth * tileset.tileWidth / imgWidth;
-		const croppedNaturalHeight = img.naturalHeight * tileset.tileHeight / imgHeight;
-
-		if (croppedNaturalWidth <= tileset.tileWidth || croppedNaturalHeight <= tileset.tileHeight) {
-			// Scale img UP to tileWidth/tileHeight
-			destWidth = tileset.tileWidth;
-			destHeight = tileset.tileHeight;
-		}
-		else if (croppedNaturalWidth <= tileScale*tileset.tileWidth || croppedNaturalHeight <= tileScale*tileset.tileHeight) {
-			// Keep img original size
-			imgWidth = img.naturalWidth;
-			imgHeight = img.naturalHeight;
-			destWidth = croppedNaturalWidth;
-			destHeight = croppedNaturalHeight;
-			// Adjust crop values which are scaled
-			tileScale = Math.max(destWidth/tileset.tileWidth, destHeight/tileset.tileHeight);
-			imgX = Math.round(imgX*tileScale);
-			imgY = Math.round(imgY*tileScale);
-		}
-		else {
-			// Scale (down) to 150% of tile dimensions
-			imgWidth = Math.round(tileScale*imgWidth);
-			imgHeight = Math.round(tileScale*imgHeight);
-			destWidth = Math.round(tileScale*tileset.tileWidth);
-			destHeight = Math.round(tileScale*tileset.tileHeight);
-			imgX = Math.round(tileScale*imgX);
-			imgY = Math.round(tileScale*imgY);
-		}
-
-		//TODO: FIXME: Rounding errors are not great here
-		// It should be possible to scale the image in a way that does not generate rounding errors
-		// Allowing a slight overflow in the generated image, then we fix it on display with object-fit and overflow hidden.
-
 		imageResizeCropEncode(img, {
 			drawWidth: imgWidth,
 			drawHeight: imgHeight,
 			posX: imgX,
 			posY: imgY,
-			destWidth: destWidth,
-			destHeight: destHeight,
+			destWidth: tileset.tileWidth,
+			destHeight: tileset.tileHeight,
 			encodeType: 'image/webp',
-			quality: 0.80,
+			quality: 0.85,
 			resultType: 'blob',
 		})
 		.then(blob => {
