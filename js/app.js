@@ -1030,8 +1030,12 @@ function onChangeMap(inMapName, inLocalMapData) {
 		// Center map
 		const ov = currentMap._overview;
 		globalZoomLevel = ov.zoomLevel;
-		globalOriginX = 0.5*($renderer.width() - ov.tileWidth*(ov.sizeE - ov.sizeW));
-		globalOriginY = 0.5*($renderer.height() - ov.tileHeight*(ov.sizeS - ov.sizeN));
+		if (ov.numRows()*ov.numCols() == 1) {
+			while (ov.getScaledTileWidth() > $renderer.width() || ov.getScaledTileHeight() > $renderer.height())
+				globalZoomLevel *= 0.8;
+		}
+		globalOriginX = 0.5*($renderer.width() - ov.getScaledTileWidth()*(ov.sizeE - ov.sizeW));
+		globalOriginY = 0.5*($renderer.height() - ov.getScaledTileHeight()*(ov.sizeS - ov.sizeN));
 
 		// Render tiles
 		globalZoomLevelChanged();
