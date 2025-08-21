@@ -5,6 +5,11 @@ Live at https://chatouillegg.github.io/cartographer/
 
 Also works by downloading repository and running `index.html` locally.
 
+## Available Maps
+
+- [AETERNA LUCIS DEMO - complete map](https://chatouillegg.github.io/cartographer/#map=aeternalucisdemo)
+- [DOOMBLADE - almost complete map (missing WildFlirt?)](https://chatouillegg.github.io/cartographer/#map=doomblade)
+
 ## Map Viewer
 
 Head to the live version or run a local version, pick your map, and navigate!
