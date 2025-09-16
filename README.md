@@ -9,6 +9,7 @@ Also works by downloading repository and running `index.html` locally.
 
 - [AETERNA LUCIS DEMO - complete map](https://chatouillegg.github.io/cartographer/#map=aeternalucisdemo)
 - [DOOMBLADE - almost complete map (missing WildFlirt?)](https://chatouillegg.github.io/cartographer/#map=doomblade)
+- [SILKSONG - work in progress](https://chatouillegg.github.io/cartographer/#map=silksong)
 
 ## Map Viewer
 
