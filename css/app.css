@@ -225,6 +225,18 @@ body:not(.editing) .newicon {
 		img {
 			position: absolute;
 			body.editing & { cursor: pointer; }
+
+			/* We're displaying original scale by invert-transforming the zoom transform - avoid browsers antialiasing */
+			/*
+			image-rendering: optimizeSpeed;
+			image-rendering: -moz-crisp-edges;
+			image-rendering: -o-crisp-edges;
+			image-rendering: -webkit-optimize-contrast;
+			image-rendering: optimize-contrast;
+			-ms-interpolation-mode: nearest-neighbor;
+			*/
+			/* This gives best result in chrome, not sure about other browsers yet */
+			image-rendering: pixelated;
 		}
 	}
 }
